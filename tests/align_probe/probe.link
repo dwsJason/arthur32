@@ -1,0 +1,15 @@
+            dsk probe.s16
+            typ $b3
+            aux $0000
+            asm main.s
+            ds 0
+            knd #$1000
+            ali Page
+            lna probe
+            sna pageseg
+            asm main.s
+            ds 0
+            knd #$1000
+            ali Bank
+            lna probe
+            sna bankseg

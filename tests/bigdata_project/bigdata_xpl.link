@@ -1,0 +1,23 @@
+;
+; bigdata_xpl.link - same as bigdata.link but with ExpressLoad (XPL) enabled,
+; for testing arthur32's ExpressLoad directory rebuild during injection.
+;
+            dsk bigdata_xpl.s16
+            typ $b3             ; GS/OS application
+            aux $0000
+            xpl                 ; build an ExpressLoad ~ segment
+;----------------------------------------------
+            asm main.s
+            ds 0
+            knd #$1000          ; static + code
+            ali None
+            lna myprog          ; load name (the program name - NOT "bigdata")
+            sna main            ; segment name
+;----------------------------------------------
+            asm bigdata.s
+            ds 0
+            knd #$0001          ; data segment
+            ali None
+            lna bigdata         ; load name (== "bigdata")
+            sna bigdata         ; segment name
+;----------------------------------------------

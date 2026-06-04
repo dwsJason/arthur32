@@ -1,0 +1,25 @@
+;
+; bigdata.link - merlin32 link file for the arthur32 bigdata injection test.
+;
+            dsk bigdata.s16
+            typ $b3             ; GS/OS application
+            aux $0000
+;
+;----------------------------------------------
+; Normal code segment.
+            asm main.s
+            ds 0
+            knd #$1000          ; static + code
+            ali None
+            lna myprog          ; load name (the program name - NOT "bigdata")
+            sna main            ; segment name
+;----------------------------------------------
+; Placeholder data segment. Body is the literal string 'data.bin'.
+; LOADNAME is "bigdata" so arthur32 can find it for injection.
+            asm bigdata.s
+            ds 0
+            knd #$0001          ; data segment
+            ali None
+            lna bigdata         ; load name (== "bigdata")
+            sna bigdata         ; segment name
+;----------------------------------------------
