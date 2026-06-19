@@ -20,8 +20,8 @@ else()
 endif()
 
 add_executable(arthur32
-	arthur32.cpp
-	fileio.cpp
-	omfsegment.cpp
-	omffile.cpp
+	source/arthur32.cpp
+	source/fileio.cpp
+	source/omfsegment.cpp
+	source/omffile.cpp
 )

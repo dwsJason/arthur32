@@ -15,3 +15,15 @@ _FileInformation.txt
 
 # Editor / OS
 .DS_Store
+vcxproj/.vs/
+*.recipe
+*.ilk
+*.log
+*.obj
+*.idb
+*.pdb
+*.user
+*.lastbuildstate
+*.tlog
+*.iobj
+*.ipdb
