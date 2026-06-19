@@ -120,14 +120,15 @@ void OMFFile::Dump() const
 }
 
 //------------------------------------------------------------------------------
-int OMFFile::InjectBigData( const char* pInputPath )
+int OMFFile::InjectBigData( const char* pInputPath, bool bDryRun, int* pMissingOut )
 {
 	std::string baseDir = DirOf( pInputPath );
 	int injected = 0;
+	int missing  = 0;
 
 	for (OMFSegment& seg : m_segments)
 	{
-		if (!seg.IsBigData())
+		if (!seg.IsPlaceholder())
 		{
 			continue;
 		}
@@ -137,7 +138,7 @@ int OMFFile::InjectBigData( const char* pInputPath )
 		const std::vector<u8>& body = seg.m_body;
 		if (body.size() < 5 || 0xF2 != body[0])
 		{
-			printf( "ERROR: bigdata segment %u ('%s') body is not an LCONST pathname\n",
+			printf( "ERROR: placeholder segment %u ('%s') body is not an LCONST pathname\n",
 				(unsigned)seg.m_segNum, seg.m_segName.c_str() );
 			return -1;
 		}
@@ -145,7 +146,7 @@ int OMFFile::InjectBigData( const char* pInputPath )
 		u32 count = (u32)body[1] | ((u32)body[2] << 8) | ((u32)body[3] << 16) | ((u32)body[4] << 24);
 		if ((size_t)5 + count > body.size())
 		{
-			printf( "ERROR: bigdata segment %u ('%s') LCONST length exceeds its body\n",
+			printf( "ERROR: placeholder segment %u ('%s') LCONST length exceeds its body\n",
 				(unsigned)seg.m_segNum, seg.m_segName.c_str() );
 			return -1;
 		}
@@ -167,11 +168,42 @@ int OMFFile::InjectBigData( const char* pInputPath )
 
 		std::string fullPath = ResolveDataPath( rawPath, baseDir );
 
+		// Dry run: report what would happen, but never load data or mutate the
+		// segment.  The current load name is the matched keyword; the future load
+		// name is the segment name (copied below in the real run).
+		if (bDryRun)
+		{
+			size_t dataSize = 0;
+			bool   bExists  = FileSize( fullPath.c_str(), dataSize );
+
+			printf( "  seg %u  '%s'  (load '%s' -> '%s')  <- %s  ",
+				(unsigned)seg.m_segNum, seg.m_segName.c_str(),
+				seg.m_loadName.c_str(), seg.m_segName.c_str(), fullPath.c_str() );
+			if (bExists)
+			{
+				printf( "(%zu bytes)\n", dataSize );
+			}
+			else
+			{
+				printf( "MISSING\n" );
+				++missing;
+			}
+
+			if (seg.m_segName.size() > 10)
+			{
+				printf( "    WARNING: name '%s' exceeds 10 bytes; LOADNAME will be truncated to '%.10s'\n",
+					seg.m_segName.c_str(), seg.m_segName.c_str() );
+			}
+
+			++injected;
+			continue;
+		}
+
 		size_t dataSize = 0;
 		u8* pData = LoadFile( fullPath.c_str(), dataSize );
 		if (nullptr == pData)
 		{
-			printf( "ERROR: bigdata segment %u ('%s'): cannot open data file '%s'\n",
+			printf( "ERROR: placeholder segment %u ('%s'): cannot open data file '%s'\n",
 				(unsigned)seg.m_segNum, seg.m_segName.c_str(), fullPath.c_str() );
 			return -1;
 		}
@@ -193,7 +225,20 @@ int OMFFile::InjectBigData( const char* pInputPath )
 		seg.m_bankSize = 0;
 		seg.m_resSpc   = 0;
 		seg.m_length   = (u32)dataSize;
+
+		// Copy the meaningful SEGNAME into the (10-byte fixed) LOADNAME so the
+		// segment can be loaded by name at runtime (the loader matches on LOADNAME)
+		// and the marker keyword no longer lingers - making re-runs safe.  Names
+		// longer than 10 bytes are truncated by Serialize's WriteFixedName.
+		seg.m_loadName = seg.m_segName;
+		if (seg.m_loadName.size() > 10)
+		{
+			printf( "WARNING: segment %u name '%s' exceeds 10 bytes; LOADNAME truncated to '%.10s'\n",
+				(unsigned)seg.m_segNum, seg.m_segName.c_str(), seg.m_segName.c_str() );
+		}
+
 		seg.m_bModified = true;
+		seg.m_bInjected = true;
 
 		++injected;
 
@@ -202,6 +247,11 @@ int OMFFile::InjectBigData( const char* pInputPath )
 			printf( "Injected '%s' (%zu bytes) -> segment %u '%s'\n",
 				fullPath.c_str(), dataSize, (unsigned)seg.m_segNum, seg.m_segName.c_str() );
 		}
+	}
+
+	if (pMissingOut)
+	{
+		*pMissingOut = missing;
 	}
 
 	return injected;
@@ -321,7 +371,7 @@ bool OMFFile::RebuildExpressLoad()
 	std::vector<u32> dataLen( N ), relocLen( N ), dataRel( N ), relocRel( N );
 	for (size_t i = 0; i < N; ++i)
 	{
-		if (reals[i]->IsBigData())
+		if (reals[i]->m_bInjected)
 		{
 			// Injected: body is a single LCONST(data) + END, no relocations.
 			const std::vector<u8>& body = reals[i]->m_body;

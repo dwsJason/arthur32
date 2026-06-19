@@ -43,6 +43,7 @@ static bool EqualsIgnoreCase( const std::string& a, const char* b )
 OMFSegment::OMFSegment( MemoryStream stream )
 	: m_bModified( false )
 	, m_bValid( false )
+	, m_bInjected( false )
 {
 	u8* pSegStart = stream.GetPointer();
 
@@ -221,9 +222,20 @@ void OMFSegment::AppendRebuiltHeader( MemoryWriter& out, size_t& byteCntOffset )
 }
 
 //------------------------------------------------------------------------------
-bool OMFSegment::IsBigData() const
+bool OMFSegment::IsPlaceholder() const
 {
-	return EqualsIgnoreCase( m_loadName, "bigdata" );
+	// Any of these load names marks an injection placeholder; they are all
+	// equivalent.  ("data" is intentionally generic - by convention, a segment
+	// load-named "data" carries a pathname body to be spliced in.)
+	static const char* const kKeywords[] = { "bigdata", "incbin", "bindata", "data" };
+	for (const char* pKeyword : kKeywords)
+	{
+		if (EqualsIgnoreCase( m_loadName, pKeyword ))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 //------------------------------------------------------------------------------
@@ -238,5 +250,5 @@ void OMFSegment::Dump() const
 	printf( "    bytecnt=%u  length=%u  body=%u  dispname=%u  dispdata=%u  ver=%u  lablen=%u%s\n",
 		(unsigned)m_byteCnt, (unsigned)m_length, (unsigned)m_body.size(),
 		(unsigned)m_dispName, (unsigned)m_dispData, (unsigned)m_version,
-		(unsigned)m_labLen, IsBigData() ? "  [BIGDATA]" : "" );
+		(unsigned)m_labLen, IsPlaceholder() ? "  [PLACEHOLDER]" : "" );
 }

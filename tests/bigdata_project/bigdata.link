@@ -15,11 +15,12 @@
             sna main            ; segment name
 ;----------------------------------------------
 ; Placeholder data segment. Body is the literal string 'data.bin'.
-; LOADNAME is "bigdata" so arthur32 can find it for injection.
+; LOADNAME is "bigdata" so arthur32 can find it for injection; arthur32 then
+; copies the SEGNAME ("myart") into the load name so it is loadable by name.
             asm bigdata.s
             ds 0
             knd #$0001          ; data segment
             ali None
-            lna bigdata         ; load name (== "bigdata")
-            sna bigdata         ; segment name
+            lna bigdata         ; load name (== "bigdata", the marker keyword)
+            sna myart           ; segment name (becomes the loadable load name)
 ;----------------------------------------------

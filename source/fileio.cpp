@@ -56,3 +56,27 @@ bool SaveFile(const char* pPath, const u8* pData, size_t size)
 
 	return (numWritten == size);
 }
+
+//------------------------------------------------------------------------------
+bool FileSize(const char* pPath, size_t& outSize)
+{
+	outSize = 0;
+
+	FILE* pFile = fopen(pPath, "rb");
+	if (nullptr == pFile)
+	{
+		return false;
+	}
+
+	fseek(pFile, 0, SEEK_END);
+	long length = ftell(pFile);
+	fclose(pFile);
+
+	if (length < 0)
+	{
+		return false;
+	}
+
+	outSize = (size_t)length;
+	return true;
+}

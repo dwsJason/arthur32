@@ -64,14 +64,48 @@ sz=$(stat -f%z "$TMP/bd64.s16" 2>/dev/null || stat -c%s "$TMP/bd64.s16")
 [ "$sz" -gt 70000 ] && ok "inject: >64K payload ($sz bytes)" || bad "inject: >64K payload"
 printf 'ARTHUR32-BIGDATA-PAYLOAD-0123456789ABCDEF' > "$BD/data.bin"   # restore
 
-# KIND preservation: the bigdata segment's kind line (just above its [BIGDATA]
-# marker in the -v dump) must be the same before and after the rewrite.
+# KIND preservation: the placeholder segment's kind line (just below its
+# 'myart' seg line in the -v dump) must be the same before and after the rewrite.
 assemble bigdata.link
-kind_of() { "$A32" -v "$1" /dev/null 2>/dev/null | grep -B1 '\[BIGDATA\]' | grep -oE 'kind=\$[0-9A-Fa-f]+' | head -1; }
+kind_of() { "$A32" -v "$1" /dev/null 2>/dev/null | grep -A1 "'myart'" | grep -oE 'kind=\$[0-9A-Fa-f]+' | head -1; }
 ink=$(kind_of "$BD/bigdata.s16")
 "$A32" "$BD/bigdata.s16" "$TMP/bdk.s16" 2>/dev/null
 outk=$(kind_of "$TMP/bdk.s16")
 [ -n "$ink" ] && [ "$ink" = "$outk" ] && ok "inject: KIND preserved ($ink)" || bad "inject: KIND preserved (in=$ink out=$outk)"
+
+# Load-name copy: after injection the LOADNAME must equal the SEGNAME ("myart"),
+# so the segment is loadable by name; the "bigdata" marker must be gone.
+dump_out=$("$A32" -v "$TMP/bdk.s16" /dev/null 2>/dev/null)
+echo "$dump_out" | grep -q "'myart'  (load 'myart')" && ok "inject: SEGNAME copied to LOADNAME" || bad "inject: SEGNAME copied to LOADNAME"
+echo "$dump_out" | grep -q "(load 'bigdata')" && bad "inject: marker keyword removed" || ok "inject: marker keyword removed"
+
+# Idempotency: re-running on injected output finds no placeholders (the load name
+# is now "myart", not a marker keyword) and succeeds.
+"$A32" -v "$TMP/bdk.s16" "$TMP/bd_rerun.s16" 2>/dev/null | grep -q "injected 0 placeholder" \
+  && ok "inject: re-run is idempotent (0 placeholders)" || bad "inject: re-run is idempotent"
+
+# Non-"bigdata" keyword: "incbin" must inject identically.
+assemble keyword.link
+if [ -f "$BD/keyword.s16" ]; then
+  "$A32" "$BD/keyword.s16" "$TMP/kw.s16" 2>/dev/null
+  strings "$TMP/kw.s16" | grep -q ARTHUR32-BIGDATA && ok "inject: 'incbin' keyword works" || bad "inject: 'incbin' keyword works"
+  rm -f "$BD/keyword.s16"
+else
+  bad "inject: keyword - merlin32 did not produce a file"
+fi
+
+echo "=== dry-run ==="
+# --dry-run reports the placeholder + data file and writes no output file.
+rm -f "$TMP/dry_out.s16"
+dry=$("$A32" --dry-run "$BD/bigdata.s16" "$TMP/dry_out.s16" 2>/dev/null)
+[ ! -f "$TMP/dry_out.s16" ] && ok "dry-run: no output file written" || bad "dry-run: no output file written"
+echo "$dry" | grep -q "data.bin" && echo "$dry" | grep -q "myart" && ok "dry-run: reports placeholder + data file" || bad "dry-run: reports placeholder + data file"
+
+# --dry-run exits non-zero when a referenced data file is missing.
+mv "$BD/data.bin" "$BD/data.bin.bak"
+"$A32" --dry-run "$BD/bigdata.s16" >/dev/null 2>&1; rc=$?
+mv "$BD/data.bin.bak" "$BD/data.bin"
+[ "$rc" -ne 0 ] && ok "dry-run: missing data file -> non-zero exit" || bad "dry-run: missing data file -> non-zero exit"
 
 echo "=== bigdata injection INTO an ExpressLoad file ==="
 assemble bigdata_xpl.link

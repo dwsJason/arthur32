@@ -55,8 +55,9 @@ public:
 	// Print a one-segment summary (verbose / sanity).
 	void Dump() const;
 
-	// True when LOADNAME == "bigdata" (case-insensitive) - an injection marker.
-	bool IsBigData() const;
+	// True when LOADNAME is one of the injection-marker keywords
+	// ("bigdata", "incbin", "bindata", "data"), case-insensitive.
+	bool IsPlaceholder() const;
 
 	// Header fields
 	u32 m_byteCnt;     // $00
@@ -87,6 +88,7 @@ public:
 	std::vector<u8> m_rawSegment;   // the original bytes, for byte-identical round-trip
 	bool            m_bModified;    // false -> emit m_rawSegment verbatim on Serialize
 	bool            m_bValid;       // false -> header displacements failed validation
+	bool            m_bInjected;    // true  -> body was replaced with file data (no relocs)
 };
 
 #endif // OMFSEGMENT_H_

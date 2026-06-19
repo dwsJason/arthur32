@@ -20,4 +20,9 @@ u8* LoadFile(const char* pPath, size_t& outSize);
 // Write a buffer to a file (binary mode).  Returns true on success.
 bool SaveFile(const char* pPath, const u8* pData, size_t size);
 
+// Get a file's size in bytes without reading its contents (binary mode).
+// Returns true and sets outSize on success; false (outSize 0) if it cannot be
+// opened.  Used by --dry-run to report sizes without loading large files.
+bool FileSize(const char* pPath, size_t& outSize);
+
 #endif // FILEIO_H_

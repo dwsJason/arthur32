@@ -18,6 +18,6 @@
             ds 0
             knd #$0001          ; data segment
             ali None
-            lna bigdata         ; load name (== "bigdata")
-            sna bigdata         ; segment name
+            lna bigdata         ; load name (== "bigdata", the marker keyword)
+            sna myart           ; segment name (becomes the loadable load name)
 ;----------------------------------------------
