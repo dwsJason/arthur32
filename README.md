@@ -17,8 +17,9 @@ arthur32 myprog.s16 myprog.out   # splices the data file(s) in
 
 ## How to use it
 
-In your merlin32 link file, give a segment the **load name `bigdata`** and put
-the data file's path in its body. The segment name is yours to choose.
+In your merlin32 link file, give a segment one of the **placeholder load names**
+— `bigdata`, `incbin`, `bindata` or `data` — and put the data file's path in its
+body. The segment name is yours to choose.
 
 ```
             asm   sprites.s
@@ -29,8 +30,8 @@ the data file's path in its body. The segment name is yours to choose.
             asc   'art/sprites.bin'   ; path, relative to the .s16's directory
 ```
 
-arthur32 finds every segment whose LOADNAME is `bigdata` and swaps its body for
-the contents of the referenced file. The path may use `/`, `\` or `:` as a
+arthur32 finds every segment whose LOADNAME is one of those markers and swaps its
+body for the contents of the referenced file. The path may use `/`, `\` or `:` as a
 separator and is resolved relative to the input `.s16`. The segment's KIND is
 preserved (so a DYNAMIC placeholder stays a dynamic load segment); `ALIGN` is set
 to `$10000` and `BANKSIZE` to `0` so the data may exceed 64K and span banks.
@@ -43,8 +44,13 @@ default (saving a few bytes per segment); pass `--no-trim-names` to keep them.
 ```
 arthur32 [options] <OMF_File> <Out_File>
   -v               verbose
+  --dry-run        list the placeholders and data files; write nothing
   --no-trim-names  keep merlin32's fixed-width segment names
 ```
+
+With `--dry-run`, arthur32 reports each placeholder segment and the data file it
+references without modifying or writing anything, and exits non-zero if any
+referenced data file is missing — handy as a pre-flight check in a build script.
 
 ## Building
 

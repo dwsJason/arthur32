@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 void helpText()
 {
-	printf("arthur32 - v0.1\n");
+	printf("arthur32 - v1.0\n");
 	printf("---------------\n");
 	printf("merlin32 companion tool: inject >64K data files into an OMF load file.\n");
 	printf("Replaces each placeholder segment - one whose load name is 'bigdata',\n");

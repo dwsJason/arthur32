@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/arthur32.dir/source/arthur32.cpp.o CMakeFiles/arthur32.dir/source/fileio.cpp.o CMakeFiles/arthur32.dir/source/omfsegment.cpp.o CMakeFiles/arthur32.dir/source/omffile.cpp.o -o arthur32
